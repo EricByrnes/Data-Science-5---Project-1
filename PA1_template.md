@@ -20,7 +20,8 @@ Fuelband](http://www.nike.com/us/en_us/c/nikeplus-fuelband), or
 The locations of source and download files are detailed here and may be changed if necessary. This analysis will use the values below to download a zip file with a single CSV file containing the data. The zip will be stored to the value given below and unzipped to start the analysis.
 
 #### Analysis Configuration
-```{r configuration, echo = TRUE, results = FALSE}
+
+```r
 ### Configuration variables set here
 # set remote zip filename here - you may comment this line out in order to use
 # data that has already been downloaded to data.filepath
@@ -31,7 +32,8 @@ data.filepath <- "./activity.zip"
 ```
 
 In the following section, required packages are loaded and the execution environment described for reproducibility. The analysis depends on the library *mice* for data imputation and *ggplot2* for plotting; these are installed and loaded as needed.
-```{r setup, echo = TRUE}
+
+```r
 # store run date
 run.date <- date()
 
@@ -40,12 +42,44 @@ packages.needed <- packages.required[!(packages.required %in% installed.packages
 if (length(packages.needed))
    install.packages(packages.needed, repos="http://cran.rstudio.com/")
 library(mice, quietly = TRUE)
+```
+
+```
+## mice 2.22 2014-06-10
+```
+
+```r
 library(lattice, quietly = TRUE)
 
 sessionInfo()
 ```
 
-The analysis was ron on `r run.date`. 
+```
+## R version 3.1.2 (2014-10-31)
+## Platform: x86_64-w64-mingw32/x64 (64-bit)
+## 
+## locale:
+## [1] LC_COLLATE=English_United States.1252 
+## [2] LC_CTYPE=English_United States.1252   
+## [3] LC_MONETARY=English_United States.1252
+## [4] LC_NUMERIC=C                          
+## [5] LC_TIME=English_United States.1252    
+## 
+## attached base packages:
+## [1] stats     graphics  grDevices utils     datasets  methods   base     
+## 
+## other attached packages:
+## [1] mice_2.22       lattice_0.20-29 Rcpp_0.11.3     knitr_1.8      
+## 
+## loaded via a namespace (and not attached):
+##  [1] digest_0.6.4        evaluate_0.5.5      formatR_1.0        
+##  [4] grid_3.1.2          htmltools_0.2.6     MASS_7.3-35        
+##  [7] nnet_7.3-8          randomForest_4.6-10 rmarkdown_0.3.11   
+## [10] rpart_4.1-8         stringr_0.6.2       tools_3.1.2        
+## [13] yaml_2.1.13
+```
+
+The analysis was ron on Tue Jan 13 17:15:31 2015. 
 
 
 ## Loading and preprocessing the data
@@ -55,8 +89,8 @@ This analysis is of personal activity data (steps) gathered from an activity mon
 
 The data for this assignment is available from the Reproducible Research course web site; it is also downloaded automatically to generate this document (these locations may be configured in the first code block of this document):
 
-* Source Dataset: [Activity monitoring data](`r if (exists("download.filepath")) { download.filepath } else { "javascript:alert('No download specified');" }`)
-* Stored locally at: `r data.filepath`
+* Source Dataset: [Activity monitoring data](https://d396qusza40orc.cloudfront.net/repdata/data/activity.zip)
+* Stored locally at: ./activity.zip
 
 The variables included in this dataset are:
 
@@ -67,7 +101,8 @@ The variables included in this dataset are:
 The dataset is stored in a comma-separated-value (CSV) file and there are a total of 17,568 observations in this dataset.
 
 The downloaded data is summarized below:
-```{r loading, echo = TRUE}
+
+```r
 # download zip file from source location and unzip; not normally required but
 # included for full reproducibility
 if (exists("download.filepath")) {
@@ -94,7 +129,18 @@ this.data.raw$interval <- as.factor(this.data.raw$interval)
 summary(this.data.raw)
 ```
 
-Unzipped CSV data is available at `r data.filepath`.
+```
+##      steps             date               interval    
+##  Min.   :  0.00   Min.   :2012-10-01   0      :   61  
+##  1st Qu.:  0.00   1st Qu.:2012-10-16   5      :   61  
+##  Median :  0.00   Median :2012-10-31   10     :   61  
+##  Mean   : 37.38   Mean   :2012-10-31   15     :   61  
+##  3rd Qu.: 12.00   3rd Qu.:2012-11-15   20     :   61  
+##  Max.   :806.00   Max.   :2012-11-30   25     :   61  
+##  NA's   :2304                          (Other):17202
+```
+
+Unzipped CSV data is available at ./activity.csv.
 
 
 #### Data Cleaning
@@ -104,7 +150,8 @@ THe data cleanup strategy is in two parts:
 * Impute data. The library *mice* is used to impute data.
 
 #####Step 1: Remove days for which all values are NA
-```{r clean1, echo = TRUE}
+
+```r
 this.data <- this.data.raw
 # remove days with all NA values for the whole day
 for (this.date in unique(this.data$date)) {
@@ -116,10 +163,22 @@ for (this.date in unique(this.data$date)) {
 summary(this.data)
 ```
 
+```
+##      steps             date               interval    
+##  Min.   :  0.00   Min.   :2012-10-02   0      :   53  
+##  1st Qu.:  0.00   1st Qu.:2012-10-16   5      :   53  
+##  Median :  0.00   Median :2012-10-29   10     :   53  
+##  Mean   : 37.38   Mean   :2012-10-30   15     :   53  
+##  3rd Qu.: 12.00   3rd Qu.:2012-11-16   20     :   53  
+##  Max.   :806.00   Max.   :2012-11-29   25     :   53  
+##                                        (Other):14946
+```
+
 `this.data` contains only days that have at least one non-NA value for *steps* - that is, all days wihch have all NAs for this value have been removed.
 
 #####Step 2: Impute missing values within data
-```{r clean2, echo = TRUE, results = FALSE}
+
+```r
 # impute missing values
 this.data.imputed <- this.data
 if (any(is.na(this.data.imputed$steps))) {
@@ -139,7 +198,8 @@ if (any(is.na(this.data.imputed$steps))) {
 ## Analysis
 ### What is mean total number of steps taken per day?
 The following uses the raw data (prior to cleaning and data imputation) so that all days appear in the data, even if they have all NA values. Horizontal lines are included for the mean (in red) and median (in blue) - this may overlay each other in cases of close values.
-```{r analysis1, echo = TRUE}
+
+```r
 # create data
 this.data.bydate <- aggregate(steps ~ date, data = this.data.raw, sum)
 names(this.data.bydate)[2] <- "steps"
@@ -161,13 +221,16 @@ barchart(steps ~ date, data = this.data.bydate,
          })
 ```
 
-* Mean value: `r format(this.data.bydate.mean, nsmall = 2)` steps
-* Median value: `r format(this.data.bydate.median, nsmall = 0)` steps
+![plot of chunk analysis1](figure/analysis1-1.png) 
+
+* Mean value: 10766.19 steps
+* Median value: 10765 steps
 
 
 ### What is the average daily activity pattern?
 The following uses the raw data (prior to cleaning and data imputation).
-```{r analysis2, echo = TRUE}
+
+```r
 this.data.byint <- aggregate(this.data$steps,
                              list(interval = this.data$interval),
                              sum, na.rm = TRUE)
@@ -194,15 +257,18 @@ xyplot(steps ~ interval, data = this.data.byint, type = "l",
        })
 ```
 
-* Mean value: `r format(this.data.byint.mean, nsmall = 2)` steps
-* Maximum value: `r format(this.data.byint.max)` steps
-* Interval with maximum value: `r this.data.byint.maxint`
+![plot of chunk analysis2](figure/analysis2-1.png) 
+
+* Mean value: 1981.278 steps
+* Maximum value: 10927 steps
+* Interval with maximum value: 835
 
 
 
 ### Imputing missing values
 Missing values for the *steps* dimension were handled using the data cleaning strategy outlined above. Missing values were calculated as follows:
-```{r analysis3, echo = TRUE}
+
+```r
 # number of NAs in original set
 this.data.raw.na <- sum(is.na(this.data.raw$steps))
 # number of NAs after removing days with all NA
@@ -212,11 +278,12 @@ this.data.imputed.na <- sum(is.na(this.data.imputed$steps))
 ```
 
 ##### Number of missing *steps* values
-* In original data set: `r format(this.data.raw.na, nsmall = 0)`
-* After removing days with all NA steps: `r format(this.data.na, nsmall = 0)`
-* After removing other NAs (should be 0): `r format(this.data.imputed.na, nsmall = 0)`
+* In original data set: 2304
+* After removing days with all NA steps: 0
+* After removing other NAs (should be 0): 0
 
-```{r analysis4, echo = TRUE}
+
+```r
 # create data
 this.data.bydate <- aggregate(steps ~ date, data = this.data.imputed, sum)
 names(this.data.bydate)[2] <- "steps"
@@ -237,15 +304,18 @@ barchart(steps ~ date, data = this.data.bydate,
          })
 ```
 
-* Mean value: `r format(this.data.bydate.mean, nsmall = 2)` steps
-* Median value: `r format(this.data.bydate.median, nsmall = 0)` steps
+![plot of chunk analysis4](figure/analysis4-1.png) 
+
+* Mean value: 10766.19 steps
+* Median value: 10765 steps
 
 In this case, there were no mean/median differences in values because no NA values needed to be imputed within a given day that already had data.
 
 
 ### Are there differences in activity patterns between weekdays and weekends?
 The following analysis classifies data as *weekday* or *weekend* and augments the data frame with this information. The mean number of steps across these types of days is then calculated.
-```{r analysis5, echo = TRUE}
+
+```r
 # augment data
 this.data.bydaytype <- this.data.imputed
 this.data.bydaytype$day_type <- as.factor(
@@ -269,6 +339,8 @@ xyplot(steps ~ interval | day_type, data = this.data.bydaytype,
           panel.xyplot(...)
        })
 ```
+
+![plot of chunk analysis5](figure/analysis5-1.png) 
 
 The weekend and weekday patterns show significant differences:
 
