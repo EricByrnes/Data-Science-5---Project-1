@@ -9,7 +9,7 @@ output:
 Eric Byrnes
 
 
-## Abstract
+## Synopsis
 This analysis is of personal activity data (steps) gathered from an activity monitoring device such as a
 [Fitbit](http://www.fitbit.com), [Nike
 Fuelband](http://www.nike.com/us/en_us/c/nikeplus-fuelband), or
@@ -31,7 +31,7 @@ download.filepath <- "https://d396qusza40orc.cloudfront.net/repdata/data/activit
 data.filepath <- "./activity.zip"
 ```
 
-In the following section, required packages are loaded and the execution environment described for reproducibility. The analysis depends on the library *mice* for data imputation and *ggplot2* for plotting; these are installed and loaded as needed.
+In the following section, required packages are loaded and the execution environment described for reproducibility. The analysis depends on the library *mice* for data imputation and *lattice* for plotting; these are installed and loaded as needed.
 
 ```r
 # store run date
@@ -42,13 +42,6 @@ packages.needed <- packages.required[!(packages.required %in% installed.packages
 if (length(packages.needed))
    install.packages(packages.needed, repos="http://cran.rstudio.com/")
 library(mice, quietly = TRUE)
-```
-
-```
-## mice 2.22 2014-06-10
-```
-
-```r
 library(lattice, quietly = TRUE)
 
 sessionInfo()
@@ -69,17 +62,17 @@ sessionInfo()
 ## [1] stats     graphics  grDevices utils     datasets  methods   base     
 ## 
 ## other attached packages:
-## [1] mice_2.22       lattice_0.20-29 Rcpp_0.11.3     knitr_1.8      
+## [1] mice_2.22       Rcpp_0.11.3     knitr_1.8       lattice_0.20-29
 ## 
 ## loaded via a namespace (and not attached):
 ##  [1] digest_0.6.4        evaluate_0.5.5      formatR_1.0        
-##  [4] grid_3.1.2          htmltools_0.2.6     MASS_7.3-35        
-##  [7] nnet_7.3-8          randomForest_4.6-10 rmarkdown_0.3.11   
-## [10] rpart_4.1-8         stringr_0.6.2       tools_3.1.2        
-## [13] yaml_2.1.13
+##  [4] grid_3.1.2          htmltools_0.2.6     markdown_0.7.4     
+##  [7] MASS_7.3-35         mime_0.2            nnet_7.3-8         
+## [10] randomForest_4.6-10 rmarkdown_0.3.11    rpart_4.1-8        
+## [13] stringr_0.6.2       tools_3.1.2         yaml_2.1.13
 ```
 
-The analysis was ron on Tue Jan 13 17:15:31 2015. 
+The analysis was ron on Sat Jan 17 19:21:04 2015. 
 
 
 ## Loading and preprocessing the data
@@ -91,14 +84,6 @@ The data for this assignment is available from the Reproducible Research course 
 
 * Source Dataset: [Activity monitoring data](https://d396qusza40orc.cloudfront.net/repdata/data/activity.zip)
 * Stored locally at: ./activity.zip
-
-The variables included in this dataset are:
-
-* **steps**: Number of steps taking in a 5-minute interval (missing values are coded as `NA`)
-* **date**: The date on which the measurement was taken in YYYY-MM-DD format
-* **interval**: Identifier for the 5-minute interval in which measurement was taken
-
-The dataset is stored in a comma-separated-value (CSV) file and there are a total of 17,568 observations in this dataset.
 
 The downloaded data is summarized below:
 
@@ -118,7 +103,20 @@ if (exists("download.filepath")) {
       data.filepath <- data.filepaths[1]$Name
    }
 }
+```
 
+```
+## Warning: running command 'curl -s -S
+## "https://d396qusza40orc.cloudfront.net/repdata/data/activity.zip" -o
+## "./activity.zip"' had status 127
+```
+
+```
+## Warning in download.file(download.filepath, data.filepath, "curl", quiet =
+## TRUE): download had nonzero exit status
+```
+
+```r
 # load CSV data
 this.data.raw <- read.csv(data.filepath,
                           colClasses = c("integer", "Date", "integer"),
@@ -140,7 +138,13 @@ summary(this.data.raw)
 ##  NA's   :2304                          (Other):17202
 ```
 
-Unzipped CSV data is available at ./activity.csv.
+Unzipped CSV data is available at ./activity.csv. The dataset is stored in a comma-separated-value (CSV) file and there are a total of 17568 observations in this dataset.
+
+The variables included in this dataset are:
+
+* **steps**: Number of steps taking in a 5-minute interval (missing values are coded as `NA`)
+* **date**: The date on which the measurement was taken in YYYY-MM-DD format
+* **interval**: Identifier for the 5-minute interval in which measurement was taken
 
 
 #### Data Cleaning
@@ -197,17 +201,22 @@ if (any(is.na(this.data.imputed$steps))) {
 
 ## Analysis
 ### What is mean total number of steps taken per day?
-The following uses the raw data (prior to cleaning and data imputation) so that all days appear in the data, even if they have all NA values. Horizontal lines are included for the mean (in red) and median (in blue) - this may overlay each other in cases of close values.
+The following uses the raw data (prior to cleaning and data imputation) so that all days appear in the data, even if they have all NA values. The first plot shows a bar chart of total number of steps per day and the second shows a histogram of the same.
 
 ```r
 # create data
-this.data.bydate <- aggregate(steps ~ date, data = this.data.raw, sum)
+this.data.stepsonly <- this.data[this.data$steps > 0, ]
+this.data.bydate <- aggregate(steps ~ date, data = this.data.stepsonly, sum)
 names(this.data.bydate)[2] <- "steps"
 
+# total mean and median by date
+this.data.bydate$mean <- cbind(aggregate(steps ~ date, data = this.data.stepsonly, mean)$steps)
+this.data.bydate$median <- cbind(aggregate(steps ~ date, data = this.data.stepsonly, median)$steps)
+# total mean and median across data set
 this.data.bydate.mean <- mean(this.data.bydate$steps, na.rm = TRUE)
 this.data.bydate.median <- median(this.data.bydate$steps, na.rm = TRUE)
 
-# histogram plot by date
+# barchart plot by date
 date.labels <- seq(1, nrow(this.data.bydate), by = 15)
 barchart(steps ~ date, data = this.data.bydate,
          xlab = "Date", ylab = "Steps",
@@ -223,8 +232,84 @@ barchart(steps ~ date, data = this.data.bydate,
 
 ![plot of chunk analysis1](figure/analysis1-1.png) 
 
+
+```r
+# histogram plot of total steps
+histogram(this.data.bydate$steps,
+          xlab = "Steps",
+          ylab = "Frequency",
+          breaks = 8,
+          xlim = c(0, max(this.data.bydate$steps) * 1.05),
+          ylim = c(0, 35))
+```
+
+![plot of chunk analysis1b](figure/analysis1b-1.png) 
+
 * Mean value: 10766.19 steps
 * Median value: 10765 steps
+
+#### Mean/Median steps by day
+
+```r
+this.data.bydate
+```
+
+```
+##          date steps      mean median
+## 1  2012-10-02   126  63.00000   63.0
+## 2  2012-10-03 11352 140.14815   61.0
+## 3  2012-10-04 12116 121.16000   56.5
+## 4  2012-10-05 13294 154.58140   66.0
+## 5  2012-10-06 15420 145.47170   67.0
+## 6  2012-10-07 11015 101.99074   52.5
+## 7  2012-10-09 12811 134.85263   48.0
+## 8  2012-10-10  9900  95.19231   56.5
+## 9  2012-10-11 10304 137.38667   35.0
+## 10 2012-10-12 17382 156.59459   46.0
+## 11 2012-10-13 12426 119.48077   45.5
+## 12 2012-10-14 15098 160.61702   60.5
+## 13 2012-10-15 10139 131.67532   54.0
+## 14 2012-10-16 15084 157.12500   64.0
+## 15 2012-10-17 13452 152.86364   61.5
+## 16 2012-10-18 10056 152.36364   52.5
+## 17 2012-10-19 11829 127.19355   74.0
+## 18 2012-10-20 10395 125.24096   49.0
+## 19 2012-10-21  8821  96.93407   48.0
+## 20 2012-10-22 13460 154.71264   52.0
+## 21 2012-10-23  8918 101.34091   56.0
+## 22 2012-10-24  8355 104.43750   51.5
+## 23 2012-10-25  2492  56.63636   35.0
+## 24 2012-10-26  6778  77.02273   36.5
+## 25 2012-10-27 10119 134.92000   72.0
+## 26 2012-10-28 11458 110.17308   61.0
+## 27 2012-10-29  5018  80.93548   54.5
+## 28 2012-10-30  9819 110.32584   40.0
+## 29 2012-10-31 15414 179.23256   83.5
+## 30 2012-11-02 10600 143.24324   55.5
+## 31 2012-11-03 10571 117.45556   59.0
+## 32 2012-11-05 10439 141.06757   66.0
+## 33 2012-11-06  8334 100.40964   52.0
+## 34 2012-11-07 12883 135.61053   58.0
+## 35 2012-11-08  3219  61.90385   42.5
+## 36 2012-11-11 12608 132.71579   55.0
+## 37 2012-11-12 10765 156.01449   42.0
+## 38 2012-11-13  7336  90.56790   57.0
+## 39 2012-11-15    41  20.50000   20.5
+## 40 2012-11-16  5441  89.19672   43.0
+## 41 2012-11-17 14339 183.83333   65.5
+## 42 2012-11-18 15110 162.47312   80.0
+## 43 2012-11-19  8841 117.88000   34.0
+## 44 2012-11-20  4472  95.14894   58.0
+## 45 2012-11-21 12787 188.04412   55.0
+## 46 2012-11-22 20427 177.62609   65.0
+## 47 2012-11-23 21194 252.30952  113.0
+## 48 2012-11-24 14478 176.56098   65.5
+## 49 2012-11-25 11834 140.88095   84.0
+## 50 2012-11-26 11162 128.29885   53.0
+## 51 2012-11-27 13646 158.67442   57.0
+## 52 2012-11-28 10183 212.14583   70.0
+## 53 2012-11-29  7047 110.10938   44.5
+```
 
 
 ### What is the average daily activity pattern?
@@ -288,8 +373,8 @@ this.data.imputed.na <- sum(is.na(this.data.imputed$steps))
 this.data.bydate <- aggregate(steps ~ date, data = this.data.imputed, sum)
 names(this.data.bydate)[2] <- "steps"
 
-this.data.bydate.mean <- mean(this.data.bydate$steps, na.rm = TRUE)
-this.data.bydate.median <- median(this.data.bydate$steps, na.rm = TRUE)
+this.data.bydate.mean <- mean(this.data.imputed$steps, na.rm = TRUE)
+this.data.bydate.median <- median(this.data.imputed$steps, na.rm = TRUE)
 
 # histogram plot by date
 barchart(steps ~ date, data = this.data.bydate,
@@ -306,8 +391,21 @@ barchart(steps ~ date, data = this.data.bydate,
 
 ![plot of chunk analysis4](figure/analysis4-1.png) 
 
-* Mean value: 10766.19 steps
-* Median value: 10765 steps
+
+```r
+# histogram plot of total steps
+histogram(this.data.bydate$steps,
+          xlab = "Steps",
+          ylab = "Frequency",
+          breaks = 8,
+          xlim = c(0, max(this.data.bydate$steps) * 1.05),
+          ylim = c(0, 35))
+```
+
+![plot of chunk analysis4b](figure/analysis4b-1.png) 
+
+* Mean value: 37.3826 steps
+* Median value: 0 steps
 
 In this case, there were no mean/median differences in values because no NA values needed to be imputed within a given day that already had data.
 

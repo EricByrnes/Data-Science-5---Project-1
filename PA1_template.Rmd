@@ -9,7 +9,7 @@ output:
 Eric Byrnes
 
 
-## Abstract
+## Synopsis
 This analysis is of personal activity data (steps) gathered from an activity monitoring device such as a
 [Fitbit](http://www.fitbit.com), [Nike
 Fuelband](http://www.nike.com/us/en_us/c/nikeplus-fuelband), or
@@ -30,7 +30,7 @@ download.filepath <- "https://d396qusza40orc.cloudfront.net/repdata/data/activit
 data.filepath <- "./activity.zip"
 ```
 
-In the following section, required packages are loaded and the execution environment described for reproducibility. The analysis depends on the library *mice* for data imputation and *ggplot2* for plotting; these are installed and loaded as needed.
+In the following section, required packages are loaded and the execution environment described for reproducibility. The analysis depends on the library *mice* for data imputation and *lattice* for plotting; these are installed and loaded as needed.
 ```{r setup, echo = TRUE}
 # store run date
 run.date <- date()
@@ -57,14 +57,6 @@ The data for this assignment is available from the Reproducible Research course 
 
 * Source Dataset: [Activity monitoring data](`r if (exists("download.filepath")) { download.filepath } else { "javascript:alert('No download specified');" }`)
 * Stored locally at: `r data.filepath`
-
-The variables included in this dataset are:
-
-* **steps**: Number of steps taking in a 5-minute interval (missing values are coded as `NA`)
-* **date**: The date on which the measurement was taken in YYYY-MM-DD format
-* **interval**: Identifier for the 5-minute interval in which measurement was taken
-
-The dataset is stored in a comma-separated-value (CSV) file and there are a total of 17,568 observations in this dataset.
 
 The downloaded data is summarized below:
 ```{r loading, echo = TRUE}
@@ -94,7 +86,13 @@ this.data.raw$interval <- as.factor(this.data.raw$interval)
 summary(this.data.raw)
 ```
 
-Unzipped CSV data is available at `r data.filepath`.
+Unzipped CSV data is available at `r data.filepath`. The dataset is stored in a comma-separated-value (CSV) file and there are a total of `r nrow(this.data.raw)` observations in this dataset.
+
+The variables included in this dataset are:
+
+* **steps**: Number of steps taking in a 5-minute interval (missing values are coded as `NA`)
+* **date**: The date on which the measurement was taken in YYYY-MM-DD format
+* **interval**: Identifier for the 5-minute interval in which measurement was taken
 
 
 #### Data Cleaning
@@ -138,16 +136,21 @@ if (any(is.na(this.data.imputed$steps))) {
 
 ## Analysis
 ### What is mean total number of steps taken per day?
-The following uses the raw data (prior to cleaning and data imputation) so that all days appear in the data, even if they have all NA values. Horizontal lines are included for the mean (in red) and median (in blue) - this may overlay each other in cases of close values.
+The following uses the raw data (prior to cleaning and data imputation) so that all days appear in the data, even if they have all NA values. The first plot shows a bar chart of total number of steps per day and the second shows a histogram of the same.
 ```{r analysis1, echo = TRUE}
 # create data
-this.data.bydate <- aggregate(steps ~ date, data = this.data.raw, sum)
+this.data.stepsonly <- this.data[this.data$steps > 0, ]
+this.data.bydate <- aggregate(steps ~ date, data = this.data.stepsonly, sum)
 names(this.data.bydate)[2] <- "steps"
 
+# total mean and median by date
+this.data.bydate$mean <- cbind(aggregate(steps ~ date, data = this.data.stepsonly, mean)$steps)
+this.data.bydate$median <- cbind(aggregate(steps ~ date, data = this.data.stepsonly, median)$steps)
+# total mean and median across data set
 this.data.bydate.mean <- mean(this.data.bydate$steps, na.rm = TRUE)
 this.data.bydate.median <- median(this.data.bydate$steps, na.rm = TRUE)
 
-# histogram plot by date
+# barchart plot by date
 date.labels <- seq(1, nrow(this.data.bydate), by = 15)
 barchart(steps ~ date, data = this.data.bydate,
          xlab = "Date", ylab = "Steps",
@@ -161,8 +164,23 @@ barchart(steps ~ date, data = this.data.bydate,
          })
 ```
 
+```{r analysis1b, echo = TRUE}
+# histogram plot of total steps
+histogram(this.data.bydate$steps,
+          xlab = "Steps",
+          ylab = "Frequency",
+          breaks = 8,
+          xlim = c(0, max(this.data.bydate$steps) * 1.05),
+          ylim = c(0, 35))
+```
+
 * Mean value: `r format(this.data.bydate.mean, nsmall = 2)` steps
 * Median value: `r format(this.data.bydate.median, nsmall = 0)` steps
+
+#### Mean/Median steps by day
+```{r analysis1c, echo = TRUE}
+this.data.bydate
+```
 
 
 ### What is the average daily activity pattern?
@@ -221,8 +239,8 @@ this.data.imputed.na <- sum(is.na(this.data.imputed$steps))
 this.data.bydate <- aggregate(steps ~ date, data = this.data.imputed, sum)
 names(this.data.bydate)[2] <- "steps"
 
-this.data.bydate.mean <- mean(this.data.bydate$steps, na.rm = TRUE)
-this.data.bydate.median <- median(this.data.bydate$steps, na.rm = TRUE)
+this.data.bydate.mean <- mean(this.data.imputed$steps, na.rm = TRUE)
+this.data.bydate.median <- median(this.data.imputed$steps, na.rm = TRUE)
 
 # histogram plot by date
 barchart(steps ~ date, data = this.data.bydate,
@@ -235,6 +253,16 @@ barchart(steps ~ date, data = this.data.bydate,
             panel.grid(h = -1, v = 3)
             panel.barchart(...)
          })
+```
+
+```{r analysis4b, echo = TRUE}
+# histogram plot of total steps
+histogram(this.data.bydate$steps,
+          xlab = "Steps",
+          ylab = "Frequency",
+          breaks = 8,
+          xlim = c(0, max(this.data.bydate$steps) * 1.05),
+          ylim = c(0, 35))
 ```
 
 * Mean value: `r format(this.data.bydate.mean, nsmall = 2)` steps
